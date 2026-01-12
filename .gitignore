@@ -1,0 +1,40 @@
+# Databricks bundle artifacts
+.databricks/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+dist/
+*.egg-info/
+.eggs/
+*.egg
+
+# Virtual environments
+.venv/
+venv/
+ENV/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Environment files
+.env
+.env.local
+
+# Databricks credentials
+.databrickscfg
+
+# pytest
+.pytest_cache/
+.coverage
+
+# OS
+.DS_Store
+Thumbs.db
