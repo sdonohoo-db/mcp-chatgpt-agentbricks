@@ -54,7 +54,7 @@ In this example, the MCP server has a tool to call a Multi Agent Supervisor endp
 
     **Compute** -> **Apps** -> **Create a custom app**  
 
-    **App Name:** chatgpt-mcp-agentbricks  
+    **App Name:** mcp-server-chatgpt-agentbricks  
 
     **Description:** MCP server with access to Agent Bricks Multi-Agent Supervisor that can answer questions about NYC taxi trips via Genie or Databricks AI Security Framework via Knowledge Assistant  
 
@@ -74,7 +74,7 @@ In this example, the MCP server has a tool to call a Multi Agent Supervisor endp
 5. From this project directory on your local system, sync the files from this project into your workspace for deployment in the app. The page for the newly-created app will also show this command.  
 
     ```{bash}
-    $ databricks sync --watch . /Workspace/Users/<username>/chatgpt-mcp-agentbricks
+    $ databricks sync --watch . /Workspace/Users/<username>/mcp-server-chatgpt-agentbricks
     ```  
 
     You may need to add a `-p <profile_name>` to sync to the correct workspace.  
@@ -100,7 +100,7 @@ In this example, the MCP server has a tool to call a Multi Agent Supervisor endp
     * Name the custom tool (your MCP server)
     * Describe what kinds of the questions the MCP server has the ability to answer.  
     * Copy the MCP App URL from the app page and add `/mcp` to the end. It will be of the format:  
-    `https://chatgpt-mcp-agentbricks-xxxxxxxxxxxxxxxx.xx.azure.databricksapps.com/mcp`  
+    `https://mcp-server-chatgpt-agentbricks-xxxxxxxxxxxxxxxx.xx.azure.databricksapps.com/mcp`  
     * Leave Authentication as "OAuth" and use the `client_id` and `client_secret` to complete `OAuth Client ID` and `OAuth Client Secret`.  
 
     Create the New ChatGPT app, add the new app as a tool in your chat and test.

@@ -23,7 +23,7 @@ from fastmcp import FastMCP
 from .tools import load_tools
 from .utils import header_store
 
-mcp_server = FastMCP(name="chatgpt-mcp-agentbricks")
+mcp_server = FastMCP(name="mcp-server-chatgpt-agentbricks")
 
 STATIC_DIR = Path(__file__).parent / "../static"
 
