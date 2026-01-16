@@ -48,30 +48,169 @@ def load_tools(mcp_server):
     """
 
     @mcp_server.tool
-    def health() -> dict:
+    def health(deep: bool = False) -> dict:
         """
-        Check the health of the MCP server and Databricks connection.
+        Check the health of the MCP server and optionally verify OAuth and agent connectivity.
 
-        This is a simple diagnostic tool that confirms the server is running properly.
-        It's useful for:
-        - Monitoring and health checks
-        - Testing the MCP connection
-        - Verifying the server is responsive
+        This diagnostic tool confirms the server is running properly. With deep=True,
+        it also validates OAuth OBO authentication and agent endpoint connectivity.
+
+        Args:
+            deep: If True, performs additional checks for OAuth token validity
+                  and agent endpoint connectivity. Default is False for fast health checks.
 
         Returns:
             dict: A dictionary containing:
-                - status (str): The health status ("healthy" if operational)
+                - status (str): Overall health status ("healthy", "degraded", or "unhealthy")
                 - message (str): A human-readable status message
+                - checks (dict, only if deep=True): Detailed results of each check
 
-        Example response:
+        Example response (basic):
             {
                 "status": "healthy",
-                "message": "Custom MCP Server is healthy and connected to Databricks Apps."
+                "message": "MCP server is running."
+            }
+
+        Example response (deep=True, all checks pass):
+            {
+                "status": "healthy",
+                "message": "All systems operational.",
+                "checks": {
+                    "server": {"status": "ok"},
+                    "obo_token": {"status": "ok", "message": "Token present"},
+                    "user_auth": {"status": "ok", "user": "john.doe@example.com"},
+                    "agent_config": {"status": "ok", "endpoint": "my-agent"},
+                    "agent_connectivity": {"status": "ok", "message": "Agent responded"}
+                }
+            }
+
+        Example response (deep=True, OBO not enabled):
+            {
+                "status": "degraded",
+                "message": "Warnings in: obo_token, user_auth",
+                "checks": {
+                    "server": {"status": "ok"},
+                    "obo_token": {"status": "warning", "message": "No OBO token...", "hint": "Enable preview..."},
+                    "user_auth": {"status": "warning", "message": "User auth unavailable..."},
+                    "agent_config": {"status": "ok", "endpoint": "my-agent"},
+                    "agent_connectivity": {"status": "skipped", "message": "Skipped - no OBO token"}
+                }
             }
         """
+        # Basic health check - always fast
+        if not deep:
+            return {
+                "status": "healthy",
+                "message": "MCP server is running.",
+            }
+
+        # Deep health check - validate all components
+        checks = {}
+        issues = []
+
+        # 1. Server check (always passes if we get here)
+        checks["server"] = {"status": "ok"}
+
+        # 2. OBO token presence check
+        # Note: OBO requires "Databricks Apps - On-Behalf-Of User Authorization" preview to be enabled
+        token = utils.get_user_token()
+        if token:
+            checks["obo_token"] = {"status": "ok", "message": "Token present"}
+        else:
+            checks["obo_token"] = {
+                "status": "warning",
+                "message": "No OBO token. Expected if running locally or OBO preview not enabled.",
+                "hint": "Enable 'Databricks Apps - On-Behalf-Of User Authorization' preview in workspace settings.",
+            }
+            issues.append("obo_token")
+
+        # 3. User authentication check (validates token works)
+        # This may fail if OBO is not enabled - treat as warning, not error
+        try:
+            w = utils.get_user_authenticated_workspace_client()
+            user = w.current_user.me()
+            checks["user_auth"] = {"status": "ok", "user": user.user_name}
+        except Exception as e:
+            error_msg = str(e)
+            # If no token, this is expected to fail - downgrade to warning
+            if not token or "token" in error_msg.lower() or "unauthorized" in error_msg.lower():
+                checks["user_auth"] = {
+                    "status": "warning",
+                    "message": "User auth unavailable (OBO may not be enabled)",
+                    "detail": error_msg,
+                }
+            else:
+                checks["user_auth"] = {"status": "error", "message": error_msg}
+            issues.append("user_auth")
+
+        # 4. Agent configuration check
+        if DATABRICKS_HOST and AGENT_ENDPOINT_NAME:
+            checks["agent_config"] = {
+                "status": "ok",
+                "endpoint": AGENT_ENDPOINT_NAME,
+                "host": DATABRICKS_HOST,
+            }
+        else:
+            missing = []
+            if not DATABRICKS_HOST:
+                missing.append("DATABRICKS_HOST")
+            if not AGENT_ENDPOINT_NAME:
+                missing.append("AGENT_ENDPOINT_NAME")
+            checks["agent_config"] = {"status": "error", "message": f"Missing: {', '.join(missing)}"}
+            issues.append("agent_config")
+
+        # 5. Agent connectivity check (only if we have token and config)
+        if token and DATABRICKS_HOST and AGENT_ENDPOINT_NAME:
+            try:
+                host = DATABRICKS_HOST if DATABRICKS_HOST.startswith("https://") else f"https://{DATABRICKS_HOST}"
+                base_url = f"{host}/serving-endpoints"
+                client = OpenAI(api_key=token, base_url=base_url)
+
+                # Send a minimal test message
+                response = client.responses.create(
+                    model=AGENT_ENDPOINT_NAME,
+                    input=[{"role": "user", "content": "health check"}],
+                )
+
+                # If we get here without exception, the agent is reachable
+                checks["agent_connectivity"] = {"status": "ok", "message": "Agent responded"}
+            except Exception as e:
+                error_msg = str(e)
+                if "401" in error_msg:
+                    # 401 could be OBO token issue or permissions - treat as warning
+                    checks["agent_connectivity"] = {
+                        "status": "warning",
+                        "message": "Authentication failed (401). Check OBO is enabled and user has CAN_QUERY permission.",
+                    }
+                elif "404" in error_msg:
+                    checks["agent_connectivity"] = {"status": "error", "message": f"Endpoint '{AGENT_ENDPOINT_NAME}' not found (404)"}
+                else:
+                    checks["agent_connectivity"] = {"status": "error", "message": error_msg}
+                issues.append("agent_connectivity")
+        elif not token:
+            checks["agent_connectivity"] = {
+                "status": "skipped",
+                "message": "Skipped - no OBO token available",
+            }
+        else:
+            checks["agent_connectivity"] = {"status": "skipped", "message": "Skipped - missing agent config"}
+
+        # Determine overall status
+        error_checks = [c for c in issues if checks.get(c, {}).get("status") == "error"]
+        if error_checks:
+            status = "unhealthy"
+            message = f"Errors in: {', '.join(error_checks)}"
+        elif issues:
+            status = "degraded"
+            message = f"Warnings in: {', '.join(issues)}"
+        else:
+            status = "healthy"
+            message = "All systems operational."
+
         return {
-            "status": "healthy",
-            "message": "Custom MCP Server is healthy and connected to Databricks Apps.",
+            "status": status,
+            "message": message,
+            "checks": checks,
         }
 
     @mcp_server.tool

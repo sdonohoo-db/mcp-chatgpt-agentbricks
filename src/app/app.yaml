@@ -6,3 +6,6 @@ env:
     value: my-agent-endpoint
   - name: AGENT_DESCRIPTION
     value: Ask questions to the AI agent
+  # Log level: DEBUG, INFO, WARNING, ERROR (default: INFO)
+  - name: LOG_LEVEL
+    value: INFO

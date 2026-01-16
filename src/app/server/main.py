@@ -9,6 +9,8 @@ The server uses uvicorn (an ASGI server) to serve the FastAPI/FastMCP applicatio
 """
 
 import argparse
+import logging
+import os
 
 import uvicorn
 
@@ -23,11 +25,22 @@ def main():
     Configuration:
         - host: "0.0.0.0" - Binds to all network interfaces, allowing external connections
         - port: Configurable via --port argument (default: 8000)
+        - log_level: Configurable via LOG_LEVEL env var (default: INFO)
 
     Usage:
         Run with default port: uv run custom-mcp-server
         Run with custom port: uv run custom-mcp-server --port 8080
+        Run with debug logging: LOG_LEVEL=DEBUG uv run custom-mcp-server
     """
+    # Configure logging from environment variable
+    log_level = os.environ.get("LOG_LEVEL", "INFO").upper()
+    logging.basicConfig(
+        level=getattr(logging, log_level, logging.INFO),
+        format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+    )
+    logger = logging.getLogger(__name__)
+    logger.info(f"Starting MCP server with log level: {log_level}")
+
     parser = argparse.ArgumentParser(description="Start the MCP server")
     parser.add_argument(
         "--port", type=int, default=8000, help="Port to run the server on (default: 8000)"
@@ -38,4 +51,5 @@ def main():
         "server.app:combined_app",  # Import path to the combined FastAPI application
         host="0.0.0.0",  # Listen on all network interfaces
         port=args.port,  # Port from command line argument or default
+        log_level=log_level.lower(),  # uvicorn uses lowercase log levels
     )
