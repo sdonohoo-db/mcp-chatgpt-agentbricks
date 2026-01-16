@@ -1,0 +1,6 @@
+command: ["uv", "run", "custom-mcp-server"]
+env:
+  - name: WORKSPACE_URL
+    value: ${workspace.host}
+  - name: AGENT_ENDPOINT_NAME
+    value: ${var.agent_endpoint_name}

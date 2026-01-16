@@ -68,7 +68,7 @@ def main():
 
         # Test arguments for tools that require parameters
         test_args = {
-            "ask_supervisor": {"prompt": "Hello, what can you help me with?"},
+            "ask_agent": {"prompt": "Hello, what can you help me with?"},
         }
 
         for tool in tools:
