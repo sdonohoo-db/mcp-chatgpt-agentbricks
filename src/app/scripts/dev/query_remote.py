@@ -19,7 +19,38 @@ import argparse
 import sys
 
 from databricks.sdk import WorkspaceClient
+from databricks.sdk.credentials_provider import OauthCredentialsStrategy, OAuthCredentialsProvider
+from databricks.sdk.oauth import Token
 from databricks_mcp import DatabricksMCPClient
+
+
+def create_oauth_workspace_client(host: str, access_token: str) -> WorkspaceClient:
+    """
+    Create a WorkspaceClient using OAuth authentication.
+
+    The Databricks SDK treats `token=` as a PAT by default. To use OAuth tokens,
+    we need to use OauthCredentialsStrategy which properly identifies the auth type.
+    """
+    oauth_token = Token(access_token=access_token, token_type="Bearer")
+
+    def make_oauth_provider(cfg):
+        def credentials_provider():
+            return {"Authorization": f"Bearer {access_token}"}
+
+        def token_provider():
+            return oauth_token
+
+        return OAuthCredentialsProvider(
+            credentials_provider=credentials_provider,
+            token_provider=token_provider
+        )
+
+    strategy = OauthCredentialsStrategy(
+        auth_type="oauth-u2m",
+        headers_provider=make_oauth_provider
+    )
+
+    return WorkspaceClient(host=host, credentials_strategy=strategy)
 
 
 def main():
@@ -43,10 +74,10 @@ def main():
     print()
 
     try:
-        # Create WorkspaceClient with OAuth token
+        # Create WorkspaceClient with OAuth token (using proper OAuth credentials strategy)
         print("Step 1: Creating WorkspaceClient with OAuth token...")
-        workspace_client = WorkspaceClient(host=args.host, token=args.token)
-        print("✓ WorkspaceClient created successfully")
+        workspace_client = create_oauth_workspace_client(args.host, args.token)
+        print("✓ WorkspaceClient created successfully (auth_type: oauth-u2m)")
         print()
 
         # Create MCP client
