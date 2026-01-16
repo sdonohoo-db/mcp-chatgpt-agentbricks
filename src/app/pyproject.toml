@@ -6,8 +6,7 @@
 [project]
 name = "mcp-chatgpt-agentbricks"                            # Change this to your server's name
 version = "0.1.0"                                     
-description = "Custom MCP Server on Databricks Apps" 
-readme = "README.md"                                  
+description = "Custom MCP Server on Databricks Apps"                                  
 requires-python = ">=3.11"                            
 
 # Core dependencies required to run the MCP server
