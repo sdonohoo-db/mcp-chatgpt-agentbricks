@@ -4,7 +4,7 @@
 # This section defines the basic information about your MCP server package
 
 [project]
-name = "mcp-server-chatgpt-agentbricks"                            # Change this to your server's name
+name = "mcp-chatgpt-agentbricks"                            # Change this to your server's name
 version = "0.1.0"                                     
 description = "Custom MCP Server on Databricks Apps" 
 readme = "README.md"                                  

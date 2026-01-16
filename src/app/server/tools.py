@@ -12,13 +12,15 @@ Each tool should:
 - Handle errors gracefully
 """
 
+import os
+
 from openai import OpenAI
 
 from server import utils
 
-# Knowledge Assistant and Supervisor (MAS)configuration
-WORKSPACE_URL = "<WORKSPACE-URL>"
-MAS_ENDPOINT_NAME = "<MULTI-AGENT-SUPERVISOR-ENDPOINT-NAME>"
+# Agent Bricks endpoint configuration (set via environment variables in app.yaml)
+WORKSPACE_URL = os.environ.get("WORKSPACE_URL", "")
+AGENT_ENDPOINT_NAME = os.environ.get("AGENT_ENDPOINT_NAME", "")
 
 
 def load_tools(mcp_server):
@@ -113,20 +115,19 @@ def load_tools(mcp_server):
             return {"error": str(e), "message": "Failed to retrieve user information"}
 
     @mcp_server.tool
-    def ask_supervisor(prompt: str) -> dict:
+    def ask_agent(prompt: str) -> dict:
         """
-        Call the Databricks Supervisor agent using on-behalf-of user authentication.
+        Call a Databricks Agent Bricks agent using on-behalf-of user authentication.
 
-        This tool allows you to query a Databricks Agent Bricks supervisor agent and its
-        sub-agents. It uses the authenticated user's token (OBO - On Behalf Of) to make
-        requests.
+        This tool allows you to query a Databricks Agent Bricks agent endpoint.
+        It uses the authenticated user's token (OBO - On Behalf Of) to make requests.
 
         Args:
-            prompt: The user question or message to send to the knowledge assistant.
+            prompt: The user question or message to send to the agent.
 
         Returns:
             dict: A dictionary containing either:
-                - response (str): The assistant's text response
+                - response (str): The agent's text response
                 - error (str): Error message if the request failed
                 - message (str): Human-readable status message
 
@@ -155,9 +156,9 @@ def load_tools(mcp_server):
                 base_url=f"{WORKSPACE_URL}/serving-endpoints",
             )
 
-            # Call the Knowledge Assistant using responses.create() API
+            # Call the agent using responses.create() API
             response = client.responses.create(
-                model=MAS_ENDPOINT_NAME,
+                model=AGENT_ENDPOINT_NAME,
                 input=[{"role": "user", "content": prompt}],
             )
 
@@ -189,7 +190,7 @@ def load_tools(mcp_server):
             if "404" in error_msg:
                 return {
                     "error": error_msg,
-                    "message": f"Endpoint '{MAS_ENDPOINT_NAME}' not found or not accessible.",
+                    "message": f"Endpoint '{AGENT_ENDPOINT_NAME}' not found or not accessible.",
                 }
-            return {"error": error_msg, "message": "Failed to query the knowledge assistant"}
+            return {"error": error_msg, "message": "Failed to query the agent"}
 

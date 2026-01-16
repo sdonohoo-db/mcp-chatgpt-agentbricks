@@ -1,20 +1,20 @@
 #!/usr/bin/env python3
 """
-Test Multi-Agent Supervisor endpoint directly.
+Test Agent Bricks endpoint directly.
 
-This script tests the Databricks Multi-Agent Supervisor (MAS) endpoint directly
-using the OpenAI client, bypassing the MCP server. Useful for verifying the
-supervisor endpoint is working before testing through the MCP server.
+This script tests a Databricks Agent Bricks endpoint directly using the OpenAI
+client, bypassing the MCP server. Useful for verifying the agent endpoint is
+working before testing through the MCP server.
 
 Usage:
-    python query_mas.py --host <host> --token <token> --endpoint <endpoint> --prompt <prompt>
+    python query_agent.py --host <host> --token <token> --endpoint <endpoint> --prompt <prompt>
 
 Example:
-    python query_mas.py \
+    python query_agent.py \
         --host https://adb-1234567890.12.azuredatabricks.net \
         --token eyJr...Dkag \
-        --endpoint mas-984580e3-endpoint \
-        --prompt "What sub-agents or tools do you have access to?"
+        --endpoint my-agent-endpoint \
+        --prompt "What can you help me with?"
 """
 
 import argparse
@@ -25,21 +25,21 @@ from openai import OpenAI
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Test Multi-Agent Supervisor endpoint directly"
+        description="Test Agent Bricks endpoint directly"
     )
 
     parser.add_argument("--host", required=True, help="Databricks workspace URL")
 
     parser.add_argument("--token", required=True, help="Databricks access token")
 
-    parser.add_argument("--endpoint", required=True, help="MAS endpoint name")
+    parser.add_argument("--endpoint", required=True, help="Agent endpoint name")
 
-    parser.add_argument("--prompt", required=True, help="Prompt to send to the supervisor")
+    parser.add_argument("--prompt", required=True, help="Prompt to send to the agent")
 
     args = parser.parse_args()
 
     print("=" * 70)
-    print("Testing Multi-Agent Supervisor Endpoint")
+    print("Testing Agent Bricks Endpoint")
     print("=" * 70)
     print(f"\nWorkspace: {args.host}")
     print(f"Endpoint: {args.endpoint}")
@@ -56,8 +56,8 @@ def main():
         print("✓ OpenAI client created successfully")
         print()
 
-        # Call the Multi-Agent Supervisor endpoint
-        print("Step 2: Calling MAS endpoint...")
+        # Call the agent endpoint
+        print("Step 2: Calling agent endpoint...")
         print("-" * 70)
         response = client.responses.create(
             model=args.endpoint,
